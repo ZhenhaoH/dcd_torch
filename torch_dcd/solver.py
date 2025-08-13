@@ -29,7 +29,7 @@ def solve_lp(q: torch.Tensor, G: torch.Tensor, h: torch.Tensor,
                    tol: float = 1e-5) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Primal-dual interior-point for:
-        min q^T x
+        min  q^T x
         s.t. G x <= h
 
     Returns (x, s, z).

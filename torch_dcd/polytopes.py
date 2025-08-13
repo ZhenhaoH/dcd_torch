@@ -3,16 +3,16 @@ from .solver import solve_lp
 
 
 def _to_rotation_matrix(R_or_q: torch.Tensor) -> torch.Tensor:
-    """Return 3x3 rotation matrix from matrix or quaternion input (W_R_B).
+    """Return 3x3 rotation matrix from matrix or quaternion input.
 
-    Semantics: both accepted forms represent rotation from body frame to world frame.
+    Rotation is from body frame to world frame.
 
     - If input shape is (3,3), assume valid rotation matrix and return it.
     - If input is length-4 (quaternion [w, x, y, z]), normalize and convert to 3x3.
     """
     if R_or_q.dim() == 2 and R_or_q.shape == (3, 3):
         return R_or_q
-    # Try to interpret as quaternion
+
     q = R_or_q.reshape(-1)
     if q.numel() != 4:
         raise ValueError("Rotation argument must be 3x3 matrix or length-4 quaternion [w,x,y,z].")
@@ -30,10 +30,6 @@ def problem_matrices(A1: torch.Tensor, b1: torch.Tensor, r1: torch.Tensor, Q1: t
                      A2: torch.Tensor, b2: torch.Tensor, r2: torch.Tensor, Q2: torch.Tensor):
     """
     Build LP terms (c, G, h) for the polytope proximity problem.
-
-    Each polytope i is given in its own body frame by A_i x_B <= b_i, and placed in world via
-    position r_i and rotation Q_i (body->world, W_R_B). Internally we use Q_i^T to map
-    world vectors into the body frame, matching the JAX reference implementation.
     """
     device = A1.device
     dtype = A1.dtype
@@ -76,29 +72,25 @@ class _ProximityFn(torch.autograd.Function):
     def backward(ctx, grad_alpha):
         x, s, z, A1, b1, r1, Q1, A2, b2, r2, Q2 = ctx.saved_tensors
         n1 = ctx.n1
-        x3 = x[:3]
         alpha = x[3]
         z1 = z[:n1]
         z2 = z[n1:]
+        
+        v1 = x[:3] - r1
+        v2 = x[:3] - r2
 
-        # Common terms
-        A1Tz1 = A1.t() @ z1
-        A2Tz2 = A2.t() @ z2
-        v1 = x3 - r1
-        v2 = x3 - r2
-
-        # Envelope theorem gradients d/dtheta [ z^T(Gx - h) ]
+        # Envelope theorem gradients
         gA1 = z1.unsqueeze(1) * (Q1.t() @ v1).unsqueeze(0)
         gb1 = -alpha * z1
-        gr1 = -Q1 @ A1Tz1
-        gQ1 = torch.outer(v1, A1Tz1)
+        gr1 = -Q1 @ (A1.t() @ z1)
+        gQ1 = torch.outer(v1, A1.t() @ z1)
 
         gA2 = z2.unsqueeze(1) * (Q2.t() @ v2).unsqueeze(0)
         gb2 = -alpha * z2
-        gr2 = -Q2 @ A2Tz2
-        gQ2 = torch.outer(v2, A2Tz2)
+        gr2 = -Q2 @ (A2.t() @ z2)
+        gQ2 = torch.outer(v2, A2.t() @ z2)
 
-        # Chain with incoming gradient
+        # Chain rule
         gA1 = grad_alpha * gA1
         gb1 = grad_alpha * gb1
         gr1 = grad_alpha * gr1
@@ -132,5 +124,3 @@ def min_distance(A1: torch.Tensor, b1: torch.Tensor, r1: torch.Tensor, Q1: torch
     alpha = proximity_autograd(A1, b1, r1, Q1, A2, b2, r2, Q2)
     return torch.linalg.norm(r1 - r2 + (r2 - r1) / alpha)
 
-# Backwards-compat alias
-min_separation_depth = min_distance
