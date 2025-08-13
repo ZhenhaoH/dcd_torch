@@ -1,8 +1,8 @@
-### Torch Polytope Proximity and Distance
+### Differentiable Collision Detection between in PyTorch
 
-This module provides a PyTorch implementation of the LP-based polytope proximity solver and differentiable minimum distance/penetration magnitude between two convex polytopes. It mirrors the JAX reference in `dpax/polytopes.py` and uses a primal–dual interior-point (PDIP) method.
+This module provides a PyTorch implementation of the LP-based polytope proximity solver and differentiable minimum distance/penetration magnitude between two convex polytopes.
 
-## API
+## Main functions
 
 - `problem_matrices(A1, b1, r1, Q1, A2, b2, r2, Q2)`
   - Build LP terms `(c, G, h)` for the proximity problem.
@@ -70,14 +70,9 @@ print('dd/dr1 =', r1.grad)
 print('dd/dr2 =', r2.grad)
 ```
 
-## Notes
-
-- Dtypes/devices: The solver uses dense linear algebra; CPU float64 is recommended for stability. You can switch to float32/GPUs if desired.
-- Autograd: Backward relies on the envelope theorem; gradients are stable even for large problems. For rotations, gradients are provided w.r.t. the rotation matrix; if you pass a quaternion input, gradients will chain back into the quaternion via the internal conversion.
-- Non-smoothness: The LP objective is piecewise-smooth due to active-set changes. Directional finite differences are recommended when validating rotational gradients (e.g., via small quaternion deltas) rather than naive parameter perturbations.
 
 ## Reference
 
-- PDIP reduction and predictor–corrector follow the same approach as the JAX reference (see `dpax/pdip_solver.py` and `dpax/polytopes.py`).
-- Original method background: DCOL (https://arxiv.org/abs/2207.00669) for problem formulation; Boyd et al. codegen notes and Nocedal & Wright for PDIP details.
+- PDIP reduction and predictor–corrector follow the same approach as the [JAX implementation](https://github.com/kevin-tracy/dpax) (see `dpax/pdip_solver.py` and `dpax/polytopes.py`).
+- Original method background: [DCOL](https://arxiv.org/abs/2207.00669) for problem formulation; [Boyd et al.](https://stanford.edu/~boyd/papers/pdf/code_gen_impl.pdf) and [Nocedal & Wright](https://www.math.uci.edu/~qnie/Publications/NumericalOptimization.pdf) for PDIP details.
 
