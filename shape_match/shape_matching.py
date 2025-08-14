@@ -1,15 +1,6 @@
 """
-Shape Matching Algorithm Implementation
-
-Based on Müller et al. "Position Based Dynamics" Section 3.3: Shape Matching
-This implements the algorithm for finding optimal rotation and translation 
-to match deformed positions to rest positions.
-
-The algorithm:
-1. Compute centers of mass for rest and deformed configurations
-2. Compute relative positions (subtract center of mass)
-3. Find optimal rotation using polar decomposition of the covariance matrix
-4. Compute goal positions and apply constraints
+Based on Müller et al. "Meshless Deformations Based on Shape Matching" Section 3.3: Shape Matching
+This implements the algorithm for finding optimal rotation and translation to match deformed positions to rest positions.
 """
 
 import torch
@@ -23,10 +14,6 @@ def optimal_rotation_translation(
     masses: Optional[torch.Tensor] = None
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
-    Find optimal rotation and translation to match deformed positions to rest positions.
-    
-    This implements the core shape matching algorithm from Section 3.3.
-    
     Args:
         rest_positions: Rest positions of shape (..., N, 3)
         deformed_positions: Current deformed positions of shape (..., N, 3)
@@ -74,8 +61,6 @@ def shape_matching_transform(
     stiffness: float = 1.0
 ) -> torch.Tensor:
     """
-    Compute goal positions using shape matching.
-    
     Args:
         rest_positions: Rest positions of shape (..., N, 3)
         deformed_positions: Current positions of shape (..., N, 3)
